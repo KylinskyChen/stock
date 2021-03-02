@@ -58,65 +58,80 @@ class sinaRealTimeData():
         return self.date
     def getTime(self):
         return self.time
+    def getName(self):
+        return self.name
 
 class stock():
     def __init__(self, server = "sina"):
         # 股票代码；
         import easyquotation
+        self.code = []
+        self.codeNum = 0
         self.quotation = easyquotation.use(server)
         self.buyingPrice = None  # 买入价格；
         self.buyingVolume = None # 买入量；
 
     def setStockCode(self, code = []):
         self.code = code
+        self.codeNum = len(code)
     def setBuyingPrice(self, buyingPrice):
         self.buyingPrice = buyingPrice
     def setBuyingVolume(self, buyingVolume):
         self.buyingVolume = buyingVolume
+    def getBuyingPrice(self):
+        return self.buyingPrice
+    def getBuyingVolume(self):
+        return self.buyingVolume
 
-    def showRealData(self, now, high, low):
+    def showStockName(self, name):
+        print(">> name:", str(name).ljust(8))
+
+    def showRealData(self, now, high, low, buyingPrice, buyingVolume):
         print(
             ">> high:", str(high).ljust(8), 
-            str("%.2f" % (self.getYieldRate(high) * 100) + "%").rjust(8), 
-            str("%.0f" % self.getYield(high)).rjust(8))
+            str("%.2f" % (self.getYieldRate(buyingPrice, buyingVolume, high) * 100) + "%").rjust(8), 
+            str("%.0f" % self.getYield(buyingPrice, buyingVolume, high)).rjust(8))
         print(
             ">> now :", 
             str(now ).ljust(8), 
-            str("%.2f" % (self.getYieldRate(now) * 100) + "%").rjust(8), 
-            str("%.0f" % self.getYield(now)).rjust(8))
+            str("%.2f" % (self.getYieldRate(buyingPrice, buyingVolume, now) * 100) + "%").rjust(8), 
+            str("%.0f" % self.getYield(buyingPrice, buyingVolume, now)).rjust(8))
         print(
             ">> low :", 
             str(low).ljust(8), 
-            str("%.2f" % (self.getYieldRate(low) * 100) + "%").rjust(8),
-            str("%.0f" % self.getYield(low)).rjust(8))
+            str("%.2f" % (self.getYieldRate(buyingPrice, buyingVolume, low) * 100) + "%").rjust(8),
+            str("%.0f" % self.getYield(buyingPrice, buyingVolume, low)).rjust(8))
 
-    def getYield(self, price):
+    def getYield(self, buyingPrice, buyingVolume, price):
         res = ""
-        if      self.buyingPrice != None    \
-            and self.buyingVolume != None   \
+        if      buyingPrice != None    \
+            and buyingVolume != None   \
             and price:
-            cost = self.buyingPrice * (0.001 + 0.003 + 0.003)
-            realCapital = self.buyingPrice + cost
-            res = (price - realCapital) * self.buyingVolume
+            cost = buyingPrice * (0.001 + 0.003 + 0.003)
+            realCapital = buyingPrice + cost
+            res = (price - realCapital) * buyingVolume
         return res
 
-    def getYieldRate(self, price):
+    def getYieldRate(self, buyingPrice, buyingVolume, price):
         res = ""
-        if      self.buyingPrice != None    \
-            and self.buyingVolume != None   \
+        if      buyingPrice != None    \
+            and buyingVolume != None   \
             and price:
-            cost = self.buyingPrice * (0.001 + 0.003 + 0.003)
-            realCapital = self.buyingPrice + cost
+            cost = buyingPrice * (0.001 + 0.003 + 0.003)
+            realCapital = buyingPrice + cost
             Yield = price - realCapital
             res = Yield / realCapital
         return res
 
     def showTime(self, time):
-        print(">> time:", time)
+        print(">> time:", str(time).ljust(8))
 
     def clearScreen(self):
         import os
         os.system("clear")
+
+    def enterSpace(self):
+        print("\n")
 
     def updateRealTime(self, prefix = True):
         res = False
@@ -129,19 +144,29 @@ class stock():
     def run(self):
         import time
         self.clearScreen()
-        realData = sinaRealTimeData()
+        realData = []
+        for _ in range(self.codeNum):
+            realData.append(sinaRealTimeData())
         while True:
             data = self.updateRealTime()
             if data:
                 self.clearScreen()
-                realData.updateData(data)
-                self.showTime(realData.getTime())
-                self.showRealData(realData.getNow(), realData.getHigh(), realData.getLow())
+                for index, item in enumerate(data):
+                    realData[index].updateData(data[item])
+                    self.showStockName(realData[index].getName())
+                    self.showTime(realData[index].getTime())
+                    self.showRealData(
+                        realData[index].getNow(), 
+                        realData[index].getHigh(), 
+                        realData[index].getLow(),
+                        self.getBuyingPrice()[index],
+                        self.getBuyingVolume()[index])
+                    self.enterSpace()
             time.sleep(60)
 
 if __name__ == "__main__":
     xcStrock = stock()
-    xcStrock.setStockCode(["002159"])
-    xcStrock.setBuyingPrice(12.08)
-    xcStrock.setBuyingVolume(4000 + 2100)
+    xcStrock.setStockCode(["002159", "600250"])
+    xcStrock.setBuyingPrice([12.08, 4.7])
+    xcStrock.setBuyingVolume([4000 + 2100, 200])
     xcStrock.run()
